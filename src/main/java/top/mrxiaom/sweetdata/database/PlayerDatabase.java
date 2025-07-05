@@ -6,6 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import top.mrxiaom.pluginbase.database.IDatabase;
@@ -165,6 +166,12 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
 
     @Nullable
     public Integer intAdd(OfflinePlayer player, String key, int toAdd) {
+        return intAdd(player, key, toAdd, false);
+    }
+
+    @Nullable
+    @Contract("_,_,_,true->!null")
+    public Integer intAdd(OfflinePlayer player, String key, int toAdd, boolean ignoreNonInteger) {
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
             Integer value = get(conn, p, key).flatMap(Util::parseInt).orElse(null);
@@ -172,11 +179,18 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
                 int finalValue = value + toAdd;
                 set(conn, p, key, String.valueOf(finalValue));
                 return finalValue;
+            } else if (ignoreNonInteger) {
+                set(conn, p, key, String.valueOf(toAdd));
+                return toAdd;
             }
         } catch (SQLException e) {
             warn(e);
         }
-        return null;
+        if (ignoreNonInteger) {
+            return 0;
+        } else {
+            return null;
+        }
     }
 
     public Optional<String> get(OfflinePlayer player, String key) {
@@ -211,7 +225,14 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
+    @Nullable
     public Integer globalIntAdd(String key, int toAdd) {
+        return globalIntAdd(key, toAdd, false);
+    }
+
+    @Nullable
+    @Contract("_,_,true->!null")
+    public Integer globalIntAdd(String key, int toAdd, boolean ignoreNonInteger) {
         try (Connection conn = plugin.getConnection()) {
             Integer value = globalGet(conn, key).flatMap(Util::parseInt).orElse(null);
             if (value != null) {
@@ -220,11 +241,20 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
                 globalCache.put(key, str);
                 globalSet(conn, key, str);
                 return finalValue;
+            } else if (ignoreNonInteger) {
+                String str = String.valueOf(toAdd);
+                globalCache.put(key, str);
+                globalSet(conn, key, str);
+                return toAdd;
             }
         } catch (SQLException e) {
             warn(e);
         }
-        return null;
+        if (ignoreNonInteger) {
+            return 0;
+        } else {
+            return null;
+        }
     }
 
     public Optional<String> globalGet(String key) {

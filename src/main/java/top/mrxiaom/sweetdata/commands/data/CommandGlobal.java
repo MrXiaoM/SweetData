@@ -118,6 +118,34 @@ public class CommandGlobal {
                     Pair.of("%key%", key),
                     Pair.of("%added%", toAdd));
         }
+        if (check("add", "sweet.data.global.add", args[1], sender)) {
+            String key = args[2];
+            Integer toAdd = Util.parseInt(args[3]).orElse(null);
+            if (toAdd == null) {
+                return Messages.command__global__add__not_integer.tm(sender,
+                        Pair.of("%input%", args[3]));
+            }
+            Player whoever;
+            if (bungeecord) {
+                whoever = Iterables.getFirst(Bukkit.getOnlinePlayers(), null);
+                if (whoever == null && parent.isNotUnsafeMode()) {
+                    return Messages.command__global__unsafe.tm(sender);
+                }
+            } else {
+                whoever = null;
+            }
+            PlayerDatabase db = plugin.getPlayerDatabase();
+            Integer result = db.globalIntAdd(key, toAdd, true);
+            db.sendRequireGlobalCacheUpdate(whoever, key, String.valueOf(result));
+
+            if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {
+                return true;
+            }
+            return Messages.command__global__add__success.tm(sender,
+                    Pair.of("%added%", toAdd),
+                    Pair.of("%key%", key),
+                    Pair.of("%value%", result));
+        }
         return false;
     }
 }

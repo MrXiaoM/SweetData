@@ -7,7 +7,9 @@
 online-mode: auto
 
 # 在控制台成功增加数值时不提示
-console-silent-plus: true
+console-silent:
+  plus: true
+  add: true
 
 # 是否开启不安全模式
 # 在不安全模式下，即使服务器内没有玩家，也可以设置全局数值

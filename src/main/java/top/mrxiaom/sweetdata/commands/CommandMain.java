@@ -29,17 +29,22 @@ public class CommandMain extends AbstractModule implements CommandExecutor, TabC
         registerCommand("sweetdata", this);
     }
 
-    boolean consoleSilentPlus;
+    boolean consoleSilentPlus, consoleSilentAdd;
     boolean unsafeMode;
 
     @Override
     public void reloadConfig(MemoryConfiguration config) {
-        consoleSilentPlus = config.getBoolean("console-silent-plus", true);
+        consoleSilentPlus = config.getBoolean("console-silent.plus", config.getBoolean("console-silent-plus", true));
+        consoleSilentAdd = config.getBoolean("console-silent.add", true);
         unsafeMode = config.getBoolean("unsafe-mode", false);
     }
 
     public boolean isConsoleSilentPlus() {
         return consoleSilentPlus;
+    }
+
+    public boolean isConsoleSilentAdd() {
+        return consoleSilentAdd;
     }
 
     public boolean isNotUnsafeMode() {

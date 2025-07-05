@@ -128,6 +128,37 @@ public class CommandPlayer {
                     Pair.of("%key%", key),
                     Pair.of("%added%", toAdd));
         }
+        if (args.length >= 4 && check("add", "sweet.data.player.add", args[0], sender)) {
+            OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
+            if (player == null) {
+                return Messages.command__player_not_found.tm(sender,
+                        Pair.of("%player%", args[1]));
+            }
+            String key = args[2];
+            Integer toAdd = Util.parseInt(args[3]).orElse(null);
+            if (toAdd == null) {
+                return Messages.command__add__not_integer.tm(sender,
+                        Pair.of("%input%", args[3]));
+            }
+            PlayerDatabase db = plugin.getPlayerDatabase();
+            PlayerCache cache = db.getCacheOrNull(player);
+            int result;
+            if (cache != null) {
+                Integer value = cache.getInt(key).orElse(0);
+                result = value + toAdd;
+                cache.put(key, result);
+                cache.setNextSubmitAfter(30 * 1000L, false);
+            } else {
+                result = db.intAdd(player, key, toAdd, true);
+            }
+            if (parent.isConsoleSilentAdd() && sender instanceof ConsoleCommandSender) {
+                return true;
+            }
+            return Messages.command__add__success.tm(sender,
+                    Pair.of("%player%", args[1]),
+                    Pair.of("%key%", key),
+                    Pair.of("%value%", result));
+        }
         return false;
     }
 }
