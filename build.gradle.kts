@@ -40,7 +40,6 @@ java {
 }
 tasks {
     shadowJar {
-        archiveClassifier.set("")
         mapOf(
             "org.intellij.lang.annotations" to "annotations.intellij",
             "org.jetbrains.annotations" to "annotations.jetbrains",
@@ -52,8 +51,14 @@ tasks {
             relocate(original, "$shadowGroup.$target")
         }
     }
-    build {
+    val copyTask = create<Copy>("copyBuildArtifact") {
         dependsOn(shadowJar)
+        from(shadowJar.get().outputs)
+        rename { "SweetData-$version.jar" }
+        into(rootProject.file("out"))
+    }
+    build {
+        dependsOn(copyTask)
     }
     withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
