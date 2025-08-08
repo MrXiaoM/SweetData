@@ -100,7 +100,7 @@ public class Placeholders extends PlaceholdersExpansion<SweetData> {
         if (cache != null) {
             return cache.get(key);
         } else {
-            return db.get(player, key);
+            return db.playerGet(player, key);
         }
     }
 

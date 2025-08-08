@@ -102,7 +102,7 @@ public class CommandGlobal {
             Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
             Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
             PlayerDatabase db = plugin.getPlayerDatabase();
-            Integer result = db.globalIntAdd(key, toAdd);
+            Integer result = db.globalIntAdd(key, toAdd, min, max);
             if (result != null) {
                 db.sendRequireGlobalCacheUpdate(whoever, key, String.valueOf(result));
             }

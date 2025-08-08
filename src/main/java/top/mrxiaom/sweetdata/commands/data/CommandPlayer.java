@@ -37,7 +37,7 @@ public class CommandPlayer {
             if (cache != null) {
                 value = cache.get(key).orElse(null);
             } else {
-                value = db.get(player, key).orElse(null);
+                value = db.playerGet(player, key).orElse(null);
             }
             if (value != null) {
                 return Messages.command__get__success.tm(sender,
@@ -65,7 +65,7 @@ public class CommandPlayer {
                 cache.put(key, value);
                 cache.setNextSubmitAfter(30 * 1000L, false);
             } else {
-                db.set(player, key, value);
+                db.playerSet(player, key, value);
             }
             return Messages.command__set__success.tm(sender,
                     Pair.of("%player%", args[1]),
@@ -85,7 +85,7 @@ public class CommandPlayer {
             if (cache != null) {
                 cache.remove(key);
             }
-            db.remove(player, key);
+            db.playerRemove(player, key);
             return Messages.command__remove__success.tm(sender,
                     Pair.of("%player%", args[1]),
                     Pair.of("%key%", key));

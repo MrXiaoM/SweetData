@@ -120,19 +120,28 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
+    /**
+     * 获取全局数据缓存
+     */
     public GlobalCache getGlobalCache() {
         return globalCache;
     }
 
+    /**
+     * 提交玩家数据缓存
+     */
     public void submitCache(OfflinePlayer player, List<Pair<String, String>> pairs) {
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
-            set(conn, p, pairs);
+            playerSet(conn, p, pairs);
         } catch (SQLException e) {
             warn(e);
         }
     }
 
+    /**
+     * 获取玩家数据缓存，玩家在当前子服没有缓存时，返回<code>null</code>
+     */
     @Nullable
     public PlayerCache getCacheOrNull(@Nullable OfflinePlayer p) {
         Player player = (p != null && p.isOnline()) ? p.getPlayer() : null;
@@ -143,6 +152,9 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
+    /**
+     * 获取或刷新玩家数据缓存，玩家在当前子服没有缓存时，创建缓存
+     */
     @NotNull
     public PlayerCache getCache(Player player) {
         PlayerCache cache = cacheMap.get(player);
@@ -153,12 +165,15 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
+    /**
+     * 从数据库拉取，创建或刷新玩家数据缓存
+     */
     @NotNull
     public PlayerCache refreshCache(Player player) {
         PlayerCache cache = cacheMap.computeIfAbsent(player, id -> new PlayerCache(player));
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
-            List<Pair<String, String>> pairs = get(conn, p);
+            List<Pair<String, String>> pairs = playerGet(conn, p);
             cache.putAll(pairs);
         } catch (SQLException e) {
             warn(e);
@@ -166,37 +181,102 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         return cache;
     }
 
+    /**
+     * 对指定的玩家数据进行增加操作
+     * @param player 玩家
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     * @see PlayerDatabase#playerIntAdd(OfflinePlayer, String, int, Integer, Integer)
+     */
     @Nullable
     @Deprecated
     public Integer intAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd) {
+        return playerIntAdd(player, key, toAdd);
+    }
+
+    /**
+     * 对指定的玩家数据进行增加操作
+     * @param player 玩家
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     * @see PlayerDatabase#playerIntAdd(OfflinePlayer, String, int, Integer, Integer)
+     */
+    @Nullable
+    public Integer playerIntAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd) {
         return playerIntAdd(player, key, toAdd, false, null, null);
     }
 
+    /**
+     * 对指定的玩家数据进行增加操作
+     * @param player 玩家
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @param min 限制最小值，<code>null</code>则不限制
+     * @param max 限制最大值，<code>null</code>则不限制
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     * @see PlayerDatabase#playerIntAdd(OfflinePlayer, String, int, Integer, Integer)
+     */
     @Nullable
     public Integer playerIntAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd, @Nullable Integer min, @Nullable Integer max) {
         return playerIntAdd(player, key, toAdd, false, min, max);
     }
 
+    /**
+     * 对指定的玩家数据进行增加操作
+     * @param player 玩家
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @param ignoreNonInteger 如果指定的数据不存在，或者数据不是整数，则忽略操作，返回<code>null</code>
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     * @see PlayerDatabase#playerIntAdd(OfflinePlayer, String, int, Integer, Integer)
+     */
     @Nullable
     @Deprecated
     @Contract("_,_,_,true->!null")
     public Integer intAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd, boolean ignoreNonInteger) {
+        return playerIntAdd(player, key, toAdd, ignoreNonInteger);
+    }
+
+    /**
+     * 对指定的玩家数据进行增加操作
+     * @param player 玩家
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @param ignoreNonInteger 如果指定的数据不存在，或者数据不是整数，则忽略操作，返回<code>null</code>
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     * @see PlayerDatabase#playerIntAdd(OfflinePlayer, String, int, Integer, Integer)
+     */
+    @Nullable
+    @Contract("_,_,_,true->!null")
+    public Integer playerIntAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd, boolean ignoreNonInteger) {
         return playerIntAdd(player, key, toAdd, ignoreNonInteger, null, null);
     }
 
+    /**
+     * 对指定的玩家数据进行增加操作
+     * @param player 玩家
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @param ignoreNonInteger 如果指定的数据不存在，或者数据不是整数，则忽略操作，返回<code>null</code>
+     * @param min 限制最小值，<code>null</code>则不限制
+     * @param max 限制最大值，<code>null</code>则不限制
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     */
     @Nullable
     @Contract("_,_,_,true,_,_->!null")
     public Integer playerIntAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd, boolean ignoreNonInteger, @Nullable Integer min, @Nullable Integer max) {
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
-            Integer value = get(conn, p, key).flatMap(Util::parseInt).orElse(null);
+            Integer value = playerGet(conn, p, key).flatMap(Util::parseInt).orElse(null);
             if (value != null) {
                 int finalValue = limit(value + toAdd, min, max);
-                set(conn, p, key, String.valueOf(finalValue));
+                playerSet(conn, p, key, String.valueOf(finalValue));
                 return finalValue;
             } else if (ignoreNonInteger) {
                 int finalValue = limit(toAdd, min, max);
-                set(conn, p, key, String.valueOf(finalValue));
+                playerSet(conn, p, key, String.valueOf(finalValue));
                 return finalValue;
             }
         } catch (SQLException e) {
@@ -209,58 +289,141 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
+    /**
+     * 获取玩家数据
+     * @param player 玩家
+     * @param key 键名
+     * @see PlayerDatabase#playerGet(OfflinePlayer, String)
+     */
+    @Deprecated
     public Optional<String> get(@NotNull OfflinePlayer player, @NotNull String key) {
+        return playerGet(player, key);
+    }
+
+    /**
+     * 获取玩家数据
+     * @param player 玩家
+     * @param key 键名
+     */
+    public Optional<String> playerGet(@NotNull OfflinePlayer player, @NotNull String key) {
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
-            return get(conn, p, key);
+            return playerGet(conn, p, key);
         } catch (SQLException e) {
             warn(e);
         }
         return Optional.empty();
     }
 
+    /**
+     * 设置玩家数据
+     * @param player 玩家
+     * @param key 键名
+     * @param value 数据值，设为<code>null</code>将改为调用<code>playerRemove</code>
+     * @see PlayerDatabase#playerSet(OfflinePlayer, String, String)
+     */
+    @Deprecated
     public void set(@NotNull OfflinePlayer player, @NotNull String key, @Nullable String value) {
+        playerSet(player, key, value);
+    }
+
+    /**
+     * 设置玩家数据
+     * @param player 玩家
+     * @param key 键名
+     * @param value 数据值，设为<code>null</code>将改为调用<code>playerRemove</code>
+     */
+    public void playerSet(@NotNull OfflinePlayer player, @NotNull String key, @Nullable String value) {
         if (value == null) {
-            remove(player, key);
+            playerRemove(player, key);
             return;
         }
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
-            set(conn, p, key, value);
+            playerSet(conn, p, key, value);
         } catch (SQLException e) {
             warn(e);
         }
     }
 
+    /**
+     * 移除玩家数据
+     * @param player 玩家
+     * @param key 键名
+     * @see PlayerDatabase#playerRemove(OfflinePlayer, String)
+     */
+    @Deprecated
     public void remove(@NotNull OfflinePlayer player, @NotNull String key) {
+        playerRemove(player, key);
+    }
+
+    /**
+     * 移除玩家数据
+     * @param player 玩家
+     * @param key 键名
+     */
+    public void playerRemove(@NotNull OfflinePlayer player, @NotNull String key) {
         try (Connection conn = plugin.getConnection()) {
             PlayerCache cache = getCacheOrNull(player);
             if (cache != null) {
                 cache.remove(key);
             }
             String p = plugin.databaseKey(player);
-            remove(conn, p, key);
+            playerRemove(conn, p, key);
         } catch (SQLException e) {
             warn(e);
         }
     }
 
+    /**
+     * 对指定的全局数据进行增加操作
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     * @see PlayerDatabase#globalIntAdd(String, int, boolean, Integer, Integer)
+     */
     @Nullable
     public Integer globalIntAdd(@NotNull String key, int toAdd) {
         return globalIntAdd(key, toAdd, false, null, null);
     }
 
+    /**
+     * 对指定的全局数据进行增加操作
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @param min 限制最小值，<code>null</code>则不限制
+     * @param max 限制最大值，<code>null</code>则不限制
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     * @see PlayerDatabase#globalIntAdd(String, int, boolean, Integer, Integer)
+     */
     @Nullable
     public Integer globalIntAdd(@NotNull String key, int toAdd, @Nullable Integer min, @Nullable Integer max) {
         return globalIntAdd(key, toAdd, false, min, max);
     }
 
+    /**
+     * 对指定的全局数据进行增加操作
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @param ignoreNonInteger 如果指定的数据不存在，或者数据不是整数，则忽略操作，返回<code>null</code>
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     * @see PlayerDatabase#globalIntAdd(String, int, boolean, Integer, Integer)
+     */
     @Nullable
     @Contract("_,_,true->!null")
     public Integer globalIntAdd(@NotNull String key, int toAdd, boolean ignoreNonInteger) {
         return globalIntAdd(key, toAdd, ignoreNonInteger, null, null);
     }
 
+    /**
+     * 对指定的全局数据进行增加操作
+     * @param key 键名
+     * @param toAdd 要增加的值
+     * @param ignoreNonInteger 如果指定的数据不存在，或者数据不是整数，则忽略操作，返回<code>null</code>
+     * @param min 限制最小值，<code>null</code>则不限制
+     * @param max 限制最大值，<code>null</code>则不限制
+     * @return 操作完成后的值，如果失败，将返回<code>null</code>
+     */
     @Nullable
     @Contract("_,_,true,_,_->!null")
     public Integer globalIntAdd(@NotNull String key, int toAdd, boolean ignoreNonInteger, @Nullable Integer min, @Nullable Integer max) {
@@ -289,6 +452,10 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
+    /**
+     * 获取全局数据
+     * @param key 键名
+     */
     public Optional<String> globalGet(@NotNull String key) {
         try (Connection conn = plugin.getConnection()) {
             return globalGet(conn, key);
@@ -298,6 +465,11 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         return Optional.empty();
     }
 
+    /**
+     * 设置全局数据
+     * @param key 键名
+     * @param value 数据值，设为<code>null</code>将改为调用<code>globalRemove</code>
+     */
     public void globalSet(@NotNull String key, @Nullable String value) {
         if (value == null) {
             globalRemove(key);
@@ -311,6 +483,10 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
+    /**
+     * 移除全局数据
+     * @param key 键名
+     */
     public void globalRemove(@NotNull String key) {
         try (Connection conn = plugin.getConnection()) {
             globalCache.remove(key);
@@ -321,7 +497,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
     }
 
     @NotNull
-    private Optional<String> get(@NotNull Connection conn, @NotNull String player, @NotNull String key) throws SQLException {
+    private Optional<String> playerGet(@NotNull Connection conn, @NotNull String player, @NotNull String key) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT `value` FROM `" + TABLE_PLAYERS + "` WHERE `player=`? AND `key`=?;"
         )) {
@@ -338,7 +514,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
     }
 
     @NotNull
-    private List<Pair<String, String>> get(@NotNull Connection conn, @NotNull String player) throws SQLException {
+    private List<Pair<String, String>> playerGet(@NotNull Connection conn, @NotNull String player) throws SQLException {
         List<Pair<String, String>> list = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT * FROM `" + TABLE_PLAYERS + "` WHERE `player`=?;"
@@ -355,7 +531,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         return list;
     }
 
-    private void set(@NotNull Connection conn, @NotNull String player, @NotNull String key, @NotNull String value) throws SQLException {
+    private void playerSet(@NotNull Connection conn, @NotNull String player, @NotNull String key, @NotNull String value) throws SQLException {
         String statement;
         boolean mySQL = plugin.options.database().isMySQL();
         if (mySQL) {
@@ -374,7 +550,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    private void set(@NotNull Connection conn, @NotNull String player, @NotNull List<Pair<String, String>> pairs) throws SQLException {
+    private void playerSet(@NotNull Connection conn, @NotNull String player, @NotNull List<Pair<String, String>> pairs) throws SQLException {
         String statement;
         boolean mySQL = plugin.options.database().isMySQL();
         if (mySQL) {
@@ -396,7 +572,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    private void remove(@NotNull Connection conn, @NotNull String player, @NotNull String key) throws SQLException {
+    private void playerRemove(@NotNull Connection conn, @NotNull String player, @NotNull String key) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "DELETE FROM `" + TABLE_PLAYERS + "` WHERE `player`=? AND `key`=?;"
         )) {
