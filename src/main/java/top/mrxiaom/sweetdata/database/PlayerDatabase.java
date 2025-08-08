@@ -26,6 +26,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
+import static top.mrxiaom.sweetdata.SweetData.limit;
+
 public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, Listener {
     private String TABLE_PLAYERS, TABLE_GLOBAL;
     private final Map<Player, PlayerCache> cacheMap = new HashMap<>();
@@ -165,23 +167,37 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
     }
 
     @Nullable
-    public Integer intAdd(OfflinePlayer player, String key, int toAdd) {
-        return intAdd(player, key, toAdd, false);
+    @Deprecated
+    public Integer intAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd) {
+        return playerIntAdd(player, key, toAdd, false, null, null);
     }
 
     @Nullable
+    public Integer playerIntAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd, @Nullable Integer min, @Nullable Integer max) {
+        return playerIntAdd(player, key, toAdd, false, min, max);
+    }
+
+    @Nullable
+    @Deprecated
     @Contract("_,_,_,true->!null")
-    public Integer intAdd(OfflinePlayer player, String key, int toAdd, boolean ignoreNonInteger) {
+    public Integer intAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd, boolean ignoreNonInteger) {
+        return playerIntAdd(player, key, toAdd, ignoreNonInteger, null, null);
+    }
+
+    @Nullable
+    @Contract("_,_,_,true,_,_->!null")
+    public Integer playerIntAdd(@NotNull OfflinePlayer player, @NotNull String key, int toAdd, boolean ignoreNonInteger, @Nullable Integer min, @Nullable Integer max) {
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
             Integer value = get(conn, p, key).flatMap(Util::parseInt).orElse(null);
             if (value != null) {
-                int finalValue = value + toAdd;
+                int finalValue = limit(value + toAdd, min, max);
                 set(conn, p, key, String.valueOf(finalValue));
                 return finalValue;
             } else if (ignoreNonInteger) {
-                set(conn, p, key, String.valueOf(toAdd));
-                return toAdd;
+                int finalValue = limit(toAdd, min, max);
+                set(conn, p, key, String.valueOf(finalValue));
+                return finalValue;
             }
         } catch (SQLException e) {
             warn(e);
@@ -193,7 +209,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    public Optional<String> get(OfflinePlayer player, String key) {
+    public Optional<String> get(@NotNull OfflinePlayer player, @NotNull String key) {
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
             return get(conn, p, key);
@@ -203,7 +219,11 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         return Optional.empty();
     }
 
-    public void set(OfflinePlayer player, String key, String value) {
+    public void set(@NotNull OfflinePlayer player, @NotNull String key, @Nullable String value) {
+        if (value == null) {
+            remove(player, key);
+            return;
+        }
         try (Connection conn = plugin.getConnection()) {
             String p = plugin.databaseKey(player);
             set(conn, p, key, value);
@@ -212,7 +232,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    public void remove(OfflinePlayer player, String key) {
+    public void remove(@NotNull OfflinePlayer player, @NotNull String key) {
         try (Connection conn = plugin.getConnection()) {
             PlayerCache cache = getCacheOrNull(player);
             if (cache != null) {
@@ -226,23 +246,35 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
     }
 
     @Nullable
-    public Integer globalIntAdd(String key, int toAdd) {
-        return globalIntAdd(key, toAdd, false);
+    public Integer globalIntAdd(@NotNull String key, int toAdd) {
+        return globalIntAdd(key, toAdd, false, null, null);
+    }
+
+    @Nullable
+    public Integer globalIntAdd(@NotNull String key, int toAdd, @Nullable Integer min, @Nullable Integer max) {
+        return globalIntAdd(key, toAdd, false, min, max);
     }
 
     @Nullable
     @Contract("_,_,true->!null")
-    public Integer globalIntAdd(String key, int toAdd, boolean ignoreNonInteger) {
+    public Integer globalIntAdd(@NotNull String key, int toAdd, boolean ignoreNonInteger) {
+        return globalIntAdd(key, toAdd, ignoreNonInteger, null, null);
+    }
+
+    @Nullable
+    @Contract("_,_,true,_,_->!null")
+    public Integer globalIntAdd(@NotNull String key, int toAdd, boolean ignoreNonInteger, @Nullable Integer min, @Nullable Integer max) {
         try (Connection conn = plugin.getConnection()) {
             Integer value = globalGet(conn, key).flatMap(Util::parseInt).orElse(null);
             if (value != null) {
-                int finalValue = value + toAdd;
+                int finalValue = limit(value + toAdd, min, max);
                 String str = String.valueOf(finalValue);
                 globalCache.put(key, str);
                 globalSet(conn, key, str);
                 return finalValue;
             } else if (ignoreNonInteger) {
-                String str = String.valueOf(toAdd);
+                int finalValue = limit(toAdd, min, max);
+                String str = String.valueOf(finalValue);
                 globalCache.put(key, str);
                 globalSet(conn, key, str);
                 return toAdd;
@@ -257,7 +289,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    public Optional<String> globalGet(String key) {
+    public Optional<String> globalGet(@NotNull String key) {
         try (Connection conn = plugin.getConnection()) {
             return globalGet(conn, key);
         } catch (SQLException e) {
@@ -266,7 +298,11 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         return Optional.empty();
     }
 
-    public void globalSet(String key, String value) {
+    public void globalSet(@NotNull String key, @Nullable String value) {
+        if (value == null) {
+            globalRemove(key);
+            return;
+        }
         try (Connection conn = plugin.getConnection()) {
             globalCache.put(key, value);
             globalSet(conn, key, value);
@@ -275,7 +311,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    public void globalRemove(String key) {
+    public void globalRemove(@NotNull String key) {
         try (Connection conn = plugin.getConnection()) {
             globalCache.remove(key);
             globalRemove(conn, key);
@@ -285,7 +321,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
     }
 
     @NotNull
-    private Optional<String> get(Connection conn, String player, String key) throws SQLException {
+    private Optional<String> get(@NotNull Connection conn, @NotNull String player, @NotNull String key) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT `value` FROM `" + TABLE_PLAYERS + "` WHERE `player=`? AND `key`=?;"
         )) {
@@ -302,7 +338,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
     }
 
     @NotNull
-    private List<Pair<String, String>> get(Connection conn, String player) throws SQLException {
+    private List<Pair<String, String>> get(@NotNull Connection conn, @NotNull String player) throws SQLException {
         List<Pair<String, String>> list = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT * FROM `" + TABLE_PLAYERS + "` WHERE `player`=?;"
@@ -319,7 +355,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         return list;
     }
 
-    private void set(Connection conn, String player, String key, String value) throws SQLException {
+    private void set(@NotNull Connection conn, @NotNull String player, @NotNull String key, @NotNull String value) throws SQLException {
         String statement;
         boolean mySQL = plugin.options.database().isMySQL();
         if (mySQL) {
@@ -338,7 +374,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    private void set(Connection conn, String player, List<Pair<String, String>> pairs) throws SQLException {
+    private void set(@NotNull Connection conn, @NotNull String player, @NotNull List<Pair<String, String>> pairs) throws SQLException {
         String statement;
         boolean mySQL = plugin.options.database().isMySQL();
         if (mySQL) {
@@ -360,7 +396,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    private void remove(Connection conn, String player, String key) throws SQLException {
+    private void remove(@NotNull Connection conn, @NotNull String player, @NotNull String key) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "DELETE FROM `" + TABLE_PLAYERS + "` WHERE `player`=? AND `key`=?;"
         )) {
@@ -388,7 +424,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
     }
 
     @NotNull
-    private Optional<String> globalGet(Connection conn, String key) throws SQLException {
+    private Optional<String> globalGet(@NotNull Connection conn, @NotNull String key) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT `value` FROM `" + TABLE_GLOBAL + "` WHERE `key`=?;"
         )) {
@@ -403,7 +439,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         return Optional.empty();
     }
 
-    private void globalSet(Connection conn, String key, String value) throws SQLException {
+    private void globalSet(@NotNull Connection conn, @NotNull String key, @NotNull String value) throws SQLException {
         String statement;
         boolean mySQL = plugin.options.database().isMySQL();
         if (mySQL) {
@@ -421,7 +457,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
-    private void globalRemove(Connection conn, String key) throws SQLException {
+    private void globalRemove(@NotNull Connection conn, @NotNull String key) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "DELETE FROM `" + TABLE_GLOBAL + "` WHERE `key`=?;"
         )) {

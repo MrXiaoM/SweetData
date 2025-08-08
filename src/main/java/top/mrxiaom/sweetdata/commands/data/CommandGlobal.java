@@ -99,6 +99,8 @@ public class CommandGlobal {
             } else {
                 whoever = null;
             }
+            Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
+            Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
             PlayerDatabase db = plugin.getPlayerDatabase();
             Integer result = db.globalIntAdd(key, toAdd);
             if (result != null) {
@@ -134,8 +136,10 @@ public class CommandGlobal {
             } else {
                 whoever = null;
             }
+            Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
+            Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
             PlayerDatabase db = plugin.getPlayerDatabase();
-            Integer result = db.globalIntAdd(key, toAdd, true);
+            Integer result = db.globalIntAdd(key, toAdd, true, min, max);
             db.sendRequireGlobalCacheUpdate(whoever, key, String.valueOf(result));
 
             if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {

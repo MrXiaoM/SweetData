@@ -11,6 +11,7 @@ import top.mrxiaom.sweetdata.commands.CommandMain;
 import top.mrxiaom.sweetdata.database.PlayerDatabase;
 import top.mrxiaom.sweetdata.database.entry.PlayerCache;
 
+import static top.mrxiaom.sweetdata.SweetData.limit;
 import static top.mrxiaom.sweetdata.commands.CommandMain.*;
 
 public class CommandPlayer {
@@ -101,18 +102,20 @@ public class CommandPlayer {
                 return Messages.command__plus__not_integer.tm(sender,
                         Pair.of("%input%", args[3]));
             }
+            Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
+            Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
             PlayerDatabase db = plugin.getPlayerDatabase();
             PlayerCache cache = db.getCacheOrNull(player);
             Integer result = null;
             if (cache != null) {
                 Integer value = cache.getInt(key).orElse(null);
                 if (value != null) {
-                    result = value + toAdd;
+                    result = limit(value + toAdd, min, max);
                     cache.put(key, result);
                     cache.setNextSubmitAfter(30 * 1000L, false);
                 }
             } else {
-                result = db.intAdd(player, key, toAdd);
+                result = db.playerIntAdd(player, key, toAdd, min, max);
             }
             if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {
                 return true;
@@ -140,16 +143,18 @@ public class CommandPlayer {
                 return Messages.command__add__not_integer.tm(sender,
                         Pair.of("%input%", args[3]));
             }
+            Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
+            Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
             PlayerDatabase db = plugin.getPlayerDatabase();
             PlayerCache cache = db.getCacheOrNull(player);
             int result;
             if (cache != null) {
                 Integer value = cache.getInt(key).orElse(0);
-                result = value + toAdd;
+                result = limit(value + toAdd, min, max);
                 cache.put(key, result);
                 cache.setNextSubmitAfter(30 * 1000L, false);
             } else {
-                result = db.intAdd(player, key, toAdd, true);
+                result = db.playerIntAdd(player, key, toAdd, true, min, max);
             }
             if (parent.isConsoleSilentAdd() && sender instanceof ConsoleCommandSender) {
                 return true;
