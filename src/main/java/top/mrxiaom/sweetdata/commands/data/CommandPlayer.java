@@ -53,7 +53,7 @@ public class CommandPlayer {
         if (args.length >= 4 && check("set", "sweet.data.player.set", args[0], sender)) {
             OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
             if (player == null) {
-                Messages.command__player_not_found.tm(sender,
+                return Messages.command__player_not_found.tm(sender,
                         Pair.of("%player%", args[1]));
             }
             String key = args[2];
