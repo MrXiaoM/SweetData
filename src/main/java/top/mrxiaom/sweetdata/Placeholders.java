@@ -4,7 +4,7 @@ import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import top.mrxiaom.pluginbase.utils.PlaceholdersExpansion;
+import top.mrxiaom.pluginbase.utils.depend.PlaceholdersExpansion;
 import top.mrxiaom.pluginbase.utils.Util;
 import top.mrxiaom.sweetdata.database.PlayerDatabase;
 import top.mrxiaom.sweetdata.database.entry.GlobalCache;
@@ -16,6 +16,11 @@ import java.util.function.Function;
 public class Placeholders extends PlaceholdersExpansion<SweetData> {
     public Placeholders(SweetData plugin) {
         super(plugin);
+    }
+
+    @Override
+    public boolean persist() {
+        return true;
     }
 
     @Override
