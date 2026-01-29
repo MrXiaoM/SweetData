@@ -81,7 +81,7 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
     public void onJoin(PlayerJoinEvent e) {
         Player player = e.getPlayer();
         cacheMap.remove(player);
-        refreshCache(player);
+        plugin.getScheduler().runTaskAsync(() -> refreshCache(player));
     }
 
     @EventHandler
@@ -91,7 +91,17 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         if (cache != null) {
             List<Pair<String, String>> pairs = cache.getToSubmitPairs();
             if (!pairs.isEmpty()) {
-                submitCache(player, pairs);
+                plugin.getScheduler().runTaskAsync(() -> submitCache(player, pairs));
+            }
+        }
+    }
+
+    @Override
+    public void onDisable() {
+        for (PlayerCache cache : cacheMap.values()) {
+            List<Pair<String, String>> pairs = cache.getToSubmitPairs();
+            if (!pairs.isEmpty()) {
+                submitCache(cache.getPlayer(), pairs);
             }
         }
     }
