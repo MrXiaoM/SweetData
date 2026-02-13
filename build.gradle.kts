@@ -62,6 +62,8 @@ java {
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
     }
+    withJavadocJar()
+    withSourcesJar()
 }
 tasks {
     shadowJar {
@@ -92,6 +94,15 @@ tasks {
         from(sourceSets.main.get().resources.srcDirs) {
             expand(mapOf("version" to version))
             include("plugin.yml")
+        }
+    }
+    javadoc {
+        (options as StandardJavadocDocletOptions).apply {
+            locale("zh_CN")
+            encoding("UTF-8")
+            docEncoding("UTF-8")
+            addBooleanOption("keywords", true)
+            addBooleanOption("Xdoclint:none", true)
         }
     }
 }
