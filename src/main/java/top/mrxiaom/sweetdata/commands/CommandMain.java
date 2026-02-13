@@ -99,9 +99,10 @@ public class CommandMain extends AbstractModule implements CommandExecutor, TabC
             List<String> list = new ArrayList<>();
             tab(sender, list, "sweet.data.global", "global", "g");
             tab(sender, list, "sweet.data.player.get", "get");
-            tab(sender, list, "sweet.data.player.set", "set");
+            tab(sender, list, "sweet.data.player.set", "set", "set-async");
             tab(sender, list, "sweet.data.player.del", "remove", "del");
-            tab(sender, list, "sweet.data.player.plus", "plus");
+            tab(sender, list, "sweet.data.player.plus", "plus", "plus-async");
+            tab(sender, list, "sweet.data.player.add", "add", "add-async");
             tab(sender, list, "sweet.data.reload", "reload");
             return startsWith(list, args[0]);
         }
@@ -115,9 +116,10 @@ public class CommandMain extends AbstractModule implements CommandExecutor, TabC
             if ("global".equalsIgnoreCase(args[0]) || "g".equalsIgnoreCase(args[0])) {
                 List<String> list = new ArrayList<>();
                 tab(sender, list, "sweet.data.global.get", "get");
-                tab(sender, list, "sweet.data.global.set", "set");
+                tab(sender, list, "sweet.data.global.set", "set", "set-async");
                 tab(sender, list, "sweet.data.global.del", "remove", "del");
-                tab(sender, list, "sweet.data.global.plus", "plus");
+                tab(sender, list, "sweet.data.global.plus", "plus", "plus-async");
+                tab(sender, list, "sweet.data.global.add", "add", "add-async");
                 return startsWith(list, args[1]);
             }
             if (check("reload", "sweet.data.reload", args[0], sender)) {

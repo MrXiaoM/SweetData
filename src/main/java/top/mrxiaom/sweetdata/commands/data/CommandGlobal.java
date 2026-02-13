@@ -13,6 +13,8 @@ import top.mrxiaom.sweetdata.commands.CommandMain;
 import top.mrxiaom.sweetdata.database.PlayerDatabase;
 import top.mrxiaom.sweetdata.database.entry.GlobalCache;
 
+import java.util.Map;
+
 import static top.mrxiaom.sweetdata.commands.CommandMain.*;
 
 public class CommandGlobal {
@@ -28,20 +30,30 @@ public class CommandGlobal {
     public boolean execute(CommandSender sender, String[] args) {
         if (check("get", "sweet.data.global.get", args[1], sender)) {
             String key = args[2];
-            String value;
+            Map<String, String> params = collectArgs(args, 3);
+            boolean async = getBoolean(params, "async", true);
 
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            GlobalCache global = db.getGlobalCache();
-            value = global.get(key).orElse(null);
+            Runnable impl = () -> {
+                String value;
+                PlayerDatabase db = plugin.getPlayerDatabase();
+                GlobalCache global = db.getGlobalCache();
+                value = global.get(key).orElse(null);
+                if (value != null) {
+                    Messages.command__global__get__success.tm(sender,
+                            Pair.of("%key%", key),
+                            Pair.of("%value%", value));
+                } else {
+                    Messages.command__global__get__not_found.tm(sender,
+                            Pair.of("%key%", key));
+                }
+            };
 
-            if (value != null) {
-                return Messages.command__global__get__success.tm(sender,
-                        Pair.of("%key%", key),
-                        Pair.of("%value%", value));
+            if (async) {
+                plugin.getScheduler().runTaskAsync(impl);
             } else {
-                return Messages.command__global__get__not_found.tm(sender,
-                        Pair.of("%key%", key));
+                impl.run();
             }
+            return true;
         }
         if (check("set", "sweet.data.global.set", args[1], sender)) {
             String key = args[2];
@@ -64,6 +76,30 @@ public class CommandGlobal {
                     Pair.of("%key%", key),
                     Pair.of("%value%", value));
         }
+        if (check("set-async", "sweet.data.global.set", args[1], sender)) {
+            String key = args[2];
+            String value = consume(args, 3);
+            Player whoever;
+            if (bungeecord) {
+                whoever = Iterables.getFirst(Bukkit.getOnlinePlayers(), null);
+                if (whoever == null && parent.isNotUnsafeMode()) {
+                    return Messages.command__global__unsafe.tm(sender);
+                }
+            } else {
+                whoever = null;
+            }
+
+            plugin.getScheduler().runTaskAsync(() -> {
+                PlayerDatabase db = plugin.getPlayerDatabase();
+                db.globalSet(key, value);
+                db.sendRequireGlobalCacheUpdate(whoever, key, value);
+
+                Messages.command__global__set__success.tm(sender,
+                        Pair.of("%key%", key),
+                        Pair.of("%value%", value));
+            });
+            return true;
+        }
         if (check(commandRemoveDel, "sweet.data.global.del", args[1], sender)) {
             String key = args[2];
             Player whoever;
@@ -75,13 +111,24 @@ public class CommandGlobal {
             } else {
                 whoever = null;
             }
+            Map<String, String> params = collectArgs(args, 3);
+            boolean async = getBoolean(params, "async", false);
 
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            db.globalRemove(key);
-            db.sendRequireGlobalCacheUpdate(whoever, key, null);
+            Runnable impl = () -> {
+                PlayerDatabase db = plugin.getPlayerDatabase();
+                db.globalRemove(key);
+                db.sendRequireGlobalCacheUpdate(whoever, key, null);
 
-            return Messages.command__global__remove__success.tm(sender,
-                    Pair.of("%key%", key));
+                Messages.command__global__remove__success.tm(sender,
+                        Pair.of("%key%", key));
+            };
+
+            if (async) {
+                plugin.getScheduler().runTaskAsync(impl);
+            } else {
+                impl.run();
+            }
+            return true;
         }
         if (check("plus", "sweet.data.global.plus", args[1], sender)) {
             String key = args[2];
@@ -101,24 +148,29 @@ public class CommandGlobal {
             }
             Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
             Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            Integer result = db.globalIntAdd(key, toAdd, min, max);
-            if (result != null) {
-                db.sendRequireGlobalCacheUpdate(whoever, key, String.valueOf(result));
+            plus(sender, whoever, key, toAdd, min, max);
+            return true;
+        }
+        if (check("plus-async", "sweet.data.global.plus", args[1], sender)) {
+            String key = args[2];
+            Integer toAdd = Util.parseInt(args[3]).orElse(null);
+            if (toAdd == null) {
+                return Messages.command__global__plus__not_integer.tm(sender,
+                        Pair.of("%input%", args[3]));
             }
-
-            if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {
-                return true;
+            Player whoever;
+            if (bungeecord) {
+                whoever = Iterables.getFirst(Bukkit.getOnlinePlayers(), null);
+                if (whoever == null && parent.isNotUnsafeMode()) {
+                    return Messages.command__global__unsafe.tm(sender);
+                }
+            } else {
+                whoever = null;
             }
-            if (result != null) {
-                return Messages.command__global__plus__success.tm(sender,
-                        Pair.of("%added%", toAdd),
-                        Pair.of("%key%", key),
-                        Pair.of("%value%", result));
-            }
-            return Messages.command__global__plus__fail.tm(sender,
-                    Pair.of("%key%", key),
-                    Pair.of("%added%", toAdd));
+            Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
+            Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
+            plugin.getScheduler().runTaskAsync(() -> plus(sender, whoever, key, toAdd, min, max));
+            return true;
         }
         if (check("add", "sweet.data.global.add", args[1], sender)) {
             String key = args[2];
@@ -138,18 +190,66 @@ public class CommandGlobal {
             }
             Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
             Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            Integer result = db.globalIntAdd(key, toAdd, true, min, max);
-            db.sendRequireGlobalCacheUpdate(whoever, key, String.valueOf(result));
-
-            if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {
-                return true;
+            add(sender, whoever, key, toAdd, min, max);
+            return true;
+        }
+        if (check("add-async", "sweet.data.global.add", args[1], sender)) {
+            String key = args[2];
+            Integer toAdd = Util.parseInt(args[3]).orElse(null);
+            if (toAdd == null) {
+                return Messages.command__global__add__not_integer.tm(sender,
+                        Pair.of("%input%", args[3]));
             }
-            return Messages.command__global__add__success.tm(sender,
+            Player whoever;
+            if (bungeecord) {
+                whoever = Iterables.getFirst(Bukkit.getOnlinePlayers(), null);
+                if (whoever == null && parent.isNotUnsafeMode()) {
+                    return Messages.command__global__unsafe.tm(sender);
+                }
+            } else {
+                whoever = null;
+            }
+            Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
+            Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
+            plugin.getScheduler().runTaskAsync(() -> add(sender, whoever, key, toAdd, min, max));
+            return true;
+        }
+        return false;
+    }
+
+    private void plus(CommandSender sender, Player whoever, String key, int toAdd, Integer min, Integer max) {
+        PlayerDatabase db = plugin.getPlayerDatabase();
+        Integer result = db.globalIntAdd(key, toAdd, min, max);
+        if (result != null) {
+            db.sendRequireGlobalCacheUpdate(whoever, key, String.valueOf(result));
+        }
+
+        if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {
+            return;
+        }
+        if (result != null) {
+            Messages.command__global__plus__success.tm(sender,
                     Pair.of("%added%", toAdd),
                     Pair.of("%key%", key),
                     Pair.of("%value%", result));
+        } else {
+            Messages.command__global__plus__fail.tm(sender,
+                    Pair.of("%key%", key),
+                    Pair.of("%added%", toAdd));
         }
-        return false;
+    }
+
+    private void add(CommandSender sender, Player whoever, String key, int toAdd, Integer min, Integer max) {
+        PlayerDatabase db = plugin.getPlayerDatabase();
+        Integer result = db.globalIntAdd(key, toAdd, true, min, max);
+        db.sendRequireGlobalCacheUpdate(whoever, key, String.valueOf(result));
+
+        if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {
+            return;
+        }
+        Messages.command__global__add__success.tm(sender,
+                Pair.of("%added%", toAdd),
+                Pair.of("%key%", key),
+                Pair.of("%value%", result));
     }
 }

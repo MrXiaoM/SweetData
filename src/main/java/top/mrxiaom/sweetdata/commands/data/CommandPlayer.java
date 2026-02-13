@@ -11,6 +11,8 @@ import top.mrxiaom.sweetdata.commands.CommandMain;
 import top.mrxiaom.sweetdata.database.PlayerDatabase;
 import top.mrxiaom.sweetdata.database.entry.PlayerCache;
 
+import java.util.Map;
+
 import static top.mrxiaom.sweetdata.SweetData.limit;
 import static top.mrxiaom.sweetdata.commands.CommandMain.*;
 
@@ -30,25 +32,36 @@ public class CommandPlayer {
                         Pair.of("%player%", args[1]));
             }
             String key = args[2];
-            String value;
+            Map<String, String> params = collectArgs(args, 3);
+            boolean async = getBoolean(params, "async", true);
 
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            PlayerCache cache = db.getCacheOrNull(player);
-            if (cache != null) {
-                value = cache.get(key).orElse(null);
+            Runnable impl = () -> {
+                String value;
+                PlayerDatabase db = plugin.getPlayerDatabase();
+                PlayerCache cache = db.getCacheOrNull(player);
+                if (cache != null) {
+                    value = cache.get(key).orElse(null);
+                } else {
+                    value = db.playerGet(player, key).orElse(null);
+                }
+                if (value != null) {
+                    Messages.command__get__success.tm(sender,
+                            Pair.of("%player%", args[1]),
+                            Pair.of("%key%", key),
+                            Pair.of("%value%", value));
+                } else {
+                    Messages.command__get__not_found.tm(sender,
+                            Pair.of("%player%", args[1]),
+                            Pair.of("%key%", key));
+                }
+            };
+
+            if (async) {
+                plugin.getScheduler().runTaskAsync(impl);
             } else {
-                value = db.playerGet(player, key).orElse(null);
+                impl.run();
             }
-            if (value != null) {
-                return Messages.command__get__success.tm(sender,
-                        Pair.of("%player%", args[1]),
-                        Pair.of("%key%", key),
-                        Pair.of("%value%", value));
-            } else {
-                return Messages.command__get__not_found.tm(sender,
-                        Pair.of("%player%", args[1]),
-                        Pair.of("%key%", key));
-            }
+            return true;
         }
         if (args.length >= 4 && check("set", "sweet.data.player.set", args[0], sender)) {
             OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
@@ -72,6 +85,31 @@ public class CommandPlayer {
                     Pair.of("%key%", key),
                     Pair.of("%value%", value));
         }
+        if (args.length >= 4 && check("set-async", "sweet.data.player.set", args[0], sender)) {
+            OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
+            if (player == null) {
+                return Messages.command__player_not_found.tm(sender,
+                        Pair.of("%player%", args[1]));
+            }
+            String key = args[2];
+            String value = consume(args, 3);
+
+            plugin.getScheduler().runTaskAsync(() -> {
+                PlayerDatabase db = plugin.getPlayerDatabase();
+                PlayerCache cache = db.getCacheOrNull(player);
+                if (cache != null) {
+                    cache.put(key, value);
+                    cache.setNextSubmitAfter(30 * 1000L, false);
+                } else {
+                    db.playerSet(player, key, value);
+                }
+                Messages.command__set__success.tm(sender,
+                        Pair.of("%player%", args[1]),
+                        Pair.of("%key%", key),
+                        Pair.of("%value%", value));
+            });
+            return true;
+        }
         if (args.length >= 3 && check(commandRemoveDel, "sweet.data.player.del", args[0], sender)) {
             OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
             if (player == null) {
@@ -79,16 +117,27 @@ public class CommandPlayer {
                         Pair.of("%player%", args[1]));
             }
             String key = args[2];
+            Map<String, String> params = collectArgs(args, 3);
+            boolean async = getBoolean(params, "async", false);
 
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            PlayerCache cache = db.getCacheOrNull(player);
-            if (cache != null) {
-                cache.remove(key);
+            Runnable impl = () -> {
+                PlayerDatabase db = plugin.getPlayerDatabase();
+                PlayerCache cache = db.getCacheOrNull(player);
+                if (cache != null) {
+                    cache.remove(key);
+                }
+                db.playerRemove(player, key);
+                Messages.command__remove__success.tm(sender,
+                        Pair.of("%player%", args[1]),
+                        Pair.of("%key%", key));
+            };
+
+            if (async) {
+                plugin.getScheduler().runTaskAsync(impl);
+            } else {
+                impl.run();
             }
-            db.playerRemove(player, key);
-            return Messages.command__remove__success.tm(sender,
-                    Pair.of("%player%", args[1]),
-                    Pair.of("%key%", key));
+            return true;
         }
         if (args.length >= 2 && check("clear", "sweet.data.player.clear", args[0], sender)) {
             OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
@@ -98,16 +147,26 @@ public class CommandPlayer {
             }
             Map<String, String> params = collectArgs(args, 2);
             boolean confirm = getBoolean(params, "confirm", false);
+            boolean async = getBoolean(params, "async", false);
             if (!confirm) {
                 return Messages.command__clear__confirm.tm(sender,
                         Pair.of("%player%", args[1]));
             }
 
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            db.playerClear(player);
+            Runnable impl = () -> {
+                PlayerDatabase db = plugin.getPlayerDatabase();
+                db.playerClear(player);
 
-            return Messages.command__clear__success.tm(sender,
-                    Pair.of("%player%", args[1]));
+                Messages.command__clear__success.tm(sender,
+                        Pair.of("%player%", args[1]));
+            };
+
+            if (async) {
+                plugin.getScheduler().runTaskAsync(impl);
+            } else {
+                impl.run();
+            }
+            return true;
         }
         if (args.length >= 4 && check("plus", "sweet.data.player.plus", args[0], sender)) {
             OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
@@ -123,32 +182,25 @@ public class CommandPlayer {
             }
             Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
             Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            PlayerCache cache = db.getCacheOrNull(player);
-            Integer result = null;
-            if (cache != null) {
-                Integer value = cache.getInt(key).orElse(null);
-                if (value != null) {
-                    result = limit(value + toAdd, min, max);
-                    cache.put(key, result);
-                    cache.setNextSubmitAfter(30 * 1000L, false);
-                }
-            } else {
-                result = db.playerIntAdd(player, key, toAdd, min, max);
+            plus(sender, player, args[1], key, toAdd, min, max);
+            return true;
+        }
+        if (args.length >= 4 && check("plus-async", "sweet.data.player.plus", args[0], sender)) {
+            OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
+            if (player == null) {
+                return Messages.command__player_not_found.tm(sender,
+                        Pair.of("%player%", args[1]));
             }
-            if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {
-                return true;
+            String key = args[2];
+            Integer toAdd = Util.parseInt(args[3]).orElse(null);
+            if (toAdd == null) {
+                return Messages.command__plus__not_integer.tm(sender,
+                        Pair.of("%input%", args[3]));
             }
-            if (result != null) {
-                return Messages.command__plus__success.tm(sender,
-                        Pair.of("%player%", args[1]),
-                        Pair.of("%key%", key),
-                        Pair.of("%value%", result));
-            }
-            return Messages.command__plus__fail.tm(sender,
-                    Pair.of("%player%", args[1]),
-                    Pair.of("%key%", key),
-                    Pair.of("%added%", toAdd));
+            Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
+            Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
+            plugin.getScheduler().runTaskAsync(() -> plus(sender, player, args[1], key, toAdd, min, max));
+            return true;
         }
         if (args.length >= 4 && check("add", "sweet.data.player.add", args[0], sender)) {
             OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
@@ -164,25 +216,77 @@ public class CommandPlayer {
             }
             Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
             Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
-            PlayerDatabase db = plugin.getPlayerDatabase();
-            PlayerCache cache = db.getCacheOrNull(player);
-            int result;
-            if (cache != null) {
-                Integer value = cache.getInt(key).orElse(0);
+            add(sender, player, args[1], key, toAdd, min, max);
+            return true;
+        }
+        if (args.length >= 4 && check("add-async", "sweet.data.player.add", args[0], sender)) {
+            OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
+            if (player == null) {
+                return Messages.command__player_not_found.tm(sender,
+                        Pair.of("%player%", args[1]));
+            }
+            String key = args[2];
+            Integer toAdd = Util.parseInt(args[3]).orElse(null);
+            if (toAdd == null) {
+                return Messages.command__add__not_integer.tm(sender,
+                        Pair.of("%input%", args[3]));
+            }
+            Integer min = args.length > 4 ? Util.parseInt(args[4]).orElse(null) : null;
+            Integer max = args.length > 5 ? Util.parseInt(args[5]).orElse(null) : null;
+            plugin.getScheduler().runTaskAsync(() -> add(sender, player, args[1], key, toAdd, min, max));
+            return true;
+        }
+        return false;
+    }
+
+    private void plus(CommandSender sender, OfflinePlayer player, String playerName, String key, int toAdd, Integer min, Integer max) {
+        PlayerDatabase db = plugin.getPlayerDatabase();
+        PlayerCache cache = db.getCacheOrNull(player);
+        Integer result = null;
+        if (cache != null) {
+            Integer value = cache.getInt(key).orElse(null);
+            if (value != null) {
                 result = limit(value + toAdd, min, max);
                 cache.put(key, result);
                 cache.setNextSubmitAfter(30 * 1000L, false);
-            } else {
-                result = db.playerIntAdd(player, key, toAdd, true, min, max);
             }
-            if (parent.isConsoleSilentAdd() && sender instanceof ConsoleCommandSender) {
-                return true;
-            }
-            return Messages.command__add__success.tm(sender,
-                    Pair.of("%player%", args[1]),
+        } else {
+            result = db.playerIntAdd(player, key, toAdd, min, max);
+        }
+        if (parent.isConsoleSilentPlus() && sender instanceof ConsoleCommandSender) {
+            return;
+        }
+        if (result != null) {
+            Messages.command__plus__success.tm(sender,
+                    Pair.of("%player%", playerName),
                     Pair.of("%key%", key),
                     Pair.of("%value%", result));
+        } else {
+            Messages.command__plus__fail.tm(sender,
+                    Pair.of("%player%", playerName),
+                    Pair.of("%key%", key),
+                    Pair.of("%added%", toAdd));
         }
-        return false;
+    }
+
+    private void add(CommandSender sender, OfflinePlayer player, String playerName, String key, int toAdd, Integer min, Integer max) {
+        PlayerDatabase db = plugin.getPlayerDatabase();
+        PlayerCache cache = db.getCacheOrNull(player);
+        int result;
+        if (cache != null) {
+            Integer value = cache.getInt(key).orElse(0);
+            result = limit(value + toAdd, min, max);
+            cache.put(key, result);
+            cache.setNextSubmitAfter(30 * 1000L, false);
+        } else {
+            result = db.playerIntAdd(player, key, toAdd, true, min, max);
+        }
+        if (parent.isConsoleSilentAdd() && sender instanceof ConsoleCommandSender) {
+            return;
+        }
+        Messages.command__add__success.tm(sender,
+                Pair.of("%player%", playerName),
+                Pair.of("%key%", key),
+                Pair.of("%value%", result));
     }
 }
