@@ -90,6 +90,19 @@ public class CommandPlayer {
                     Pair.of("%player%", args[1]),
                     Pair.of("%key%", key));
         }
+        if (args.length >= 2 && check("clear", "sweet.data.player.clear", args[0], sender)) {
+            OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
+            if (player == null) {
+                return Messages.command__player_not_found.tm(sender,
+                        Pair.of("%player%", args[1]));
+            }
+
+            PlayerDatabase db = plugin.getPlayerDatabase();
+            db.playerClear(player);
+            
+            return Messages.command__clear__success.tm(sender,
+                    Pair.of("%player%", args[1]));
+        }
         if (args.length >= 4 && check("plus", "sweet.data.player.plus", args[0], sender)) {
             OfflinePlayer player = Util.getOfflinePlayer(args[1]).orElse(null);
             if (player == null) {

@@ -385,6 +385,19 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         }
     }
 
+    public void playerClear(@NotNull OfflinePlayer player) {
+        try (Connection conn = plugin.getConnection()) {
+            Player online = player.isOnline() ? player.getPlayer() : null;
+            if (online != null) {
+                cacheMap.remove(online);
+            }
+            String p = plugin.databaseKey(player);
+            playerClear(conn, p);
+        } catch (SQLException e) {
+            warn(e);
+        }
+    }
+
     /**
      * 对指定的全局数据进行增加操作
      * @param key 键名
@@ -588,6 +601,15 @@ public class PlayerDatabase extends AbstractPluginHolder implements IDatabase, L
         )) {
             ps.setString(1, player);
             ps.setString(2, key);
+            ps.execute();
+        }
+    }
+
+    private void playerClear(@NotNull Connection conn, @NotNull String player) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM `" + TABLE_PLAYERS + "` WHERE `player`=?;"
+        )) {
+            ps.setString(1, player);
             ps.execute();
         }
     }
