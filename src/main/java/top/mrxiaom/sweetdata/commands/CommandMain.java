@@ -89,7 +89,7 @@ public class CommandMain extends AbstractModule implements CommandExecutor, TabC
     public static final String[] commandRemoveDel = {"remove", "del"};
     private static final List<String> emptyList = Collections.emptyList();
     private static final List<String> listArg1Player = Lists.newArrayList(
-            "get", "set", "plus", "remove", "del");
+            "get", "set", "set-async", "plus", "plus-async", "add", "add-async", "remove", "del");
     private static final List<String> listArg1Reload = Lists.newArrayList(
             "database");
     @Nullable
@@ -108,7 +108,7 @@ public class CommandMain extends AbstractModule implements CommandExecutor, TabC
         }
         if (args.length == 2) {
             if (listArg1Player.contains(args[0].toLowerCase())) {
-                String permKey = (args[0].equalsIgnoreCase("remove") ? "del" : args[0]).toLowerCase();
+                String permKey = (args[0].equalsIgnoreCase("remove") ? ("del") : (args[0].replace("-async", ""))).toLowerCase();
                 if (sender.hasPermission(permKey)) {
                     return null;
                 }
