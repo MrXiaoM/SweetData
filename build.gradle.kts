@@ -7,7 +7,7 @@ plugins {
 
 buildscript {
     repositories.mavenCentral()
-    dependencies.classpath("top.mrxiaom:LibrariesResolver-Gradle:1.7.5")
+    dependencies.classpath("top.mrxiaom:LibrariesResolver-Gradle:1.7.6")
 }
 val base = top.mrxiaom.gradle.LibraryHelper(project)
 
@@ -98,10 +98,13 @@ tasks {
 publishing {
     publications {
         create<MavenPublication>("maven") {
-            from(components.getByName("java"))
             groupId = project.group.toString()
             artifactId = rootProject.name
             version = project.version.toString()
+
+            artifact(tasks["shadowJar"]).classifier = null
+            artifact(tasks["sourcesJar"])
+            artifact(tasks["javadocJar"])
         }
     }
 }
