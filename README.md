@@ -13,20 +13,32 @@ Minecraft 通用数值同步插件
 **全局数据命令**
 | 命令 | 描述 | 权限 |
 | --- | --- | --- |
-| `/data <global/g> get <键>` | 获取全局数值 | `sweet.data.global.get` |
+| `/data <global/g> get <键>` | 异步获取全局数值 | `sweet.data.global.get` |
+| `/data <global/g> get <键> --async=false` | 同步获取全局数值 | `sweet.data.global.get` |
 | `/data <global/g> set <键> <值>` | 设置全局数值 | `sweet.data.global.set` |
+| `/data <global/g> set-async <键> <值>` | 异步设置全局数值 | `sweet.data.global.set` |
 | `/data <global/g> plus <键> <值> [限制最小值] [限制最大值]` | 如果全局数值是整数，增加数值(可以为负数)，如果数值不是整数或不存在，不进行任何操作 | `sweet.data.global.plus` |
+| `/data <global/g> plus-async <键> <值> [限制最小值] [限制最大值]` | 异步设置全局数值，与 plus 命令行为一致 | `sweet.data.global.plus` |
 | `/data <global/g> add <键> <值> [限制最小值] [限制最大值]` | 增加全局整数数值(可以为负数)，如果数值不存在，或者不是整数，则取0再操作 | `sweet.data.global.add` |
-| `/data <global/g> <remove/del> <键>` | 移除全局数值 | `sweet.data.global.del` |
+| `/data <global/g> add-async <键> <值> [限制最小值] [限制最大值]` | 异步设置全局数值，与 add 命令行为一致 | `sweet.data.global.add` |
+| `/data <global/g> <remove/del> <键>` | 同步移除全局数值 | `sweet.data.global.del` |
+| `/data <global/g> <remove/del> <键> --async` | 异步移除全局数值 | `sweet.data.global.del` |
 
 **玩家数据命令**
 | 命令 | 描述 | 权限 |
 | --- | --- | --- |
-| `/data get <玩家名> <键>` | 获取玩家的数值 | `sweet.data.player.get` |
+| `/data get <玩家名> <键>` | 异步获取玩家的数值 | `sweet.data.player.get` |
+| `/data get <玩家名> <键> --async=false` | 同步获取玩家的数值 | `sweet.data.player.get` |
 | `/data set <玩家名> <键> <值>` | 设置玩家的数值 | `sweet.data.player.set` |
+| `/data set-async <玩家名> <键> <值>` | 异步设置玩家的数值 | `sweet.data.player.set` |
 | `/data plus <玩家名> <键> <值> [限制最小值] [限制最大值]` | 如果数值是整数，增加玩家的数值(可以为负数)，如果数值不是整数或不存在，不进行任何操作 | `sweet.data.player.plus` |
+| `/data plus-async <玩家名> <键> <值> [限制最小值] [限制最大值]` | 异步设置玩家数值，与 plus 命令行为一致 | `sweet.data.player.plus` |
 | `/data add <玩家名> <键> <值> [限制最小值] [限制最大值]` | 增加玩家的整数数值(可以为负数)，如果数值不存在，或者不是整数，则取0再操作 | `sweet.data.player.add` |
-| `/data <remove/del> <玩家名> <键>` | 移除玩家的数值 | `sweet.data.player.del` |
+| `/data add-async <玩家名> <键> <值> [限制最小值] [限制最大值]` | 异步设置玩家数值，与 add 命令行为一致 | `sweet.data.player.add` |
+| `/data <remove/del> <玩家名> <键>` | 同步移除玩家的数值 | `sweet.data.player.del` |
+| `/data <remove/del> <玩家名> <键> --async` | 异步移除玩家的数值 | `sweet.data.player.del` |
+| `/data clear <玩家名>` | 同步清空玩家的所有数值（需要确认，确认命令详见提示消息） | `sweet.data.player.clear` |
+| `/data clear <玩家名> --async` | 异步清空玩家的所有数值（需要确认，确认命令详见提示消息） | `sweet.data.player.clear` |
 
 **通用管理命令**
 | 命令 | 描述 | 权限 |
