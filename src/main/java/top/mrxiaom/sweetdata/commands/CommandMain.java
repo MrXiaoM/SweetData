@@ -151,6 +151,29 @@ public class CommandMain extends AbstractModule implements CommandExecutor, TabC
         return arg.equalsIgnoreCase(command) && sender.hasPermission(permission);
     }
 
+    public static Map<String, String> collectArgs(String[] args, int startIndex) {
+        Map<String, String> map = new HashMap<>();
+        for (int i = startIndex; i < args.length; i++) {
+            String text = args[i];
+            if (text.startsWith("--")) {
+                int j = text.indexOf('=');
+                if (j != -1) {
+                    map.put(text.substring(2, j), text.substring(j + 1));
+                } else {
+                    map.put(text.substring(2), "true");
+                }
+            }
+        }
+        return map;
+    }
+
+    public static boolean getBoolean(Map<String, String> params, String key, boolean def) {
+        String text = params.getOrDefault(key, String.valueOf(def));
+        if (text.equals("true") || text.equals("yes")) return true;
+        if (text.equals("false") || text.equals("no")) return false;
+        return def;
+    }
+
     public static String consume(String[] args, int startIndex) {
         StringJoiner joiner = new StringJoiner(" ");
         for (int i = startIndex; i < args.length; i++) {

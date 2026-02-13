@@ -96,10 +96,16 @@ public class CommandPlayer {
                 return Messages.command__player_not_found.tm(sender,
                         Pair.of("%player%", args[1]));
             }
+            Map<String, String> params = collectArgs(args, 2);
+            boolean confirm = getBoolean(params, "confirm", false);
+            if (!confirm) {
+                return Messages.command__clear__confirm.tm(sender,
+                        Pair.of("%player%", args[1]));
+            }
 
             PlayerDatabase db = plugin.getPlayerDatabase();
             db.playerClear(player);
-            
+
             return Messages.command__clear__success.tm(sender,
                     Pair.of("%player%", args[1]));
         }
