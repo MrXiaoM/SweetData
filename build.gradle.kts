@@ -1,13 +1,13 @@
 plugins {
     java
     `maven-publish`
-    id("com.gradleup.shadow") version "8.3.0"
+    id("com.gradleup.shadow") version "9.3.0"
     id("com.github.gmazzo.buildconfig") version "5.6.7"
 }
 
 buildscript {
     repositories.mavenCentral()
-    dependencies.classpath("top.mrxiaom:LibrariesResolver-Gradle:1.7.6")
+    dependencies.classpath("top.mrxiaom:LibrariesResolver-Gradle:1.7.27")
 }
 val base = top.mrxiaom.gradle.LibraryHelper(project)
 
@@ -28,17 +28,14 @@ repositories {
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:1.20-R0.1-SNAPSHOT")
+    compileOnly(base.depend.annotations)
     // compileOnly("org.spigotmc:spigot:1.20") // NMS
 
-    compileOnly("me.clip:placeholderapi:2.11.6")
-    compileOnly("org.jetbrains:annotations:24.0.0")
+    compileOnly("me.clip:placeholderapi:2.12.2")
 
-    base.library("org.slf4j:slf4j-api:2.0.16")
-    base.library("com.zaxxer:HikariCP:4.0.3")
-    base.library("net.kyori:adventure-api:4.22.0")
-    base.library("net.kyori:adventure-platform-bukkit:4.4.0")
-    base.library("net.kyori:adventure-text-minimessage:4.22.0")
-    base.library("net.kyori:adventure-text-serializer-plain:4.22.0")
+    base.library(LibraryHelper.adventure("4.25.0"))
+    base.library(base.depend.HikariCP)
+    base.collectPluginHolders()
 
     implementation("com.github.technicallycoded:FoliaLib:0.4.4") { isTransitive = false }
     for (artifact in pluginBaseModules) {
@@ -67,6 +64,7 @@ java {
 }
 tasks {
     shadowJar {
+        configurations.add(project.configurations.runtimeClasspath.get())
         mapOf(
             "top.mrxiaom.pluginbase" to "base",
             "com.tcoded.folialib" to "folialib",
@@ -74,7 +72,7 @@ tasks {
             relocate(original, "$shadowGroup.$target")
         }
     }
-    val copyTask = create<Copy>("copyBuildArtifact") {
+    val copyTask = register<Copy>("copyBuildArtifact") {
         dependsOn(shadowJar)
         from(shadowJar.get().outputs)
         rename { "SweetData-$version.jar" }
