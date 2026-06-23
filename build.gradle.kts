@@ -46,6 +46,9 @@ dependencies {
     implementation(base.resolver.lite)
 }
 
+LibraryHelper.initJava(project, base, targetJavaVersion, true)
+LibraryHelper.initPublishing(project)
+
 buildConfig {
     className("BuildConstants")
     packageName("top.mrxiaom.sweetdata")
@@ -56,14 +59,6 @@ buildConfig {
     buildConfigField("String[]", "RESOLVED_LIBRARIES", base.join())
 }
 
-java {
-    val javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
-    }
-    withJavadocJar()
-    withSourcesJar()
-}
 tasks {
     shadowJar {
         configurations.add(project.configurations.runtimeClasspath.get())
@@ -72,50 +67,6 @@ tasks {
             "com.tcoded.folialib" to "folialib",
         ).forEach { (original, target) ->
             relocate(original, "$shadowGroup.$target")
-        }
-    }
-    val copyTask = register<Copy>("copyBuildArtifact") {
-        dependsOn(shadowJar)
-        from(shadowJar.get().outputs)
-        rename { "SweetData-$version.jar" }
-        into(rootProject.file("out"))
-    }
-    build {
-        dependsOn(copyTask)
-    }
-    withType<JavaCompile>().configureEach {
-        options.encoding = "UTF-8"
-        if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible) {
-            options.release.set(targetJavaVersion)
-        }
-    }
-    processResources {
-        duplicatesStrategy = DuplicatesStrategy.INCLUDE
-        from(sourceSets.main.get().resources.srcDirs) {
-            expand(mapOf("version" to version))
-            include("plugin.yml")
-        }
-    }
-    javadoc {
-        (options as StandardJavadocDocletOptions).apply {
-            locale("zh_CN")
-            encoding("UTF-8")
-            docEncoding("UTF-8")
-            addBooleanOption("keywords", true)
-            addBooleanOption("Xdoclint:none", true)
-        }
-    }
-}
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = project.group.toString()
-            artifactId = rootProject.name
-            version = project.version.toString()
-
-            artifact(tasks["shadowJar"]).classifier = null
-            artifact(tasks["sourcesJar"])
-            artifact(tasks["javadocJar"])
         }
     }
 }
