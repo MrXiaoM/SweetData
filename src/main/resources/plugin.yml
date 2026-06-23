@@ -2,10 +2,10 @@ name: SweetData
 version: '${version}'
 main: top.mrxiaom.sweetdata.SweetData
 api-version: 1.13
-depend: [  ]
 softdepend: [ PlaceholderAPI ]
 authors: [ MrXiaoM ]
 folia-supported: true
+# PluginBase Libraries ${libraries_config}
 commands:
   sweetdata:
     description: 'The main command of SweetData'
