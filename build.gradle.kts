@@ -1,3 +1,5 @@
+import top.mrxiaom.gradle.LibraryHelper
+
 plugins {
     java
     `maven-publish`
@@ -9,7 +11,7 @@ buildscript {
     repositories.mavenCentral()
     dependencies.classpath("top.mrxiaom:LibrariesResolver-Gradle:1.7.27")
 }
-val base = top.mrxiaom.gradle.LibraryHelper(project)
+val base = LibraryHelper(project)
 
 group = "top.mrxiaom.sweetdata"
 version = "1.0.3"
