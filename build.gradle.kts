@@ -14,7 +14,7 @@ buildscript {
 val base = LibraryHelper(project)
 
 group = "top.mrxiaom.sweetdata"
-version = "1.0.3"
+version = "1.0.4"
 val targetJavaVersion = 8
 val pluginBaseModules = base.modules.run { listOf(library, l10n, misc) }
 val shadowGroup = "top.mrxiaom.sweetdata.libs"
